@@ -1,29 +1,221 @@
 ---
-const arrayCards = [
-  {
-    title: 'Bosque Fondal',
-    repo: 'https://github.com/20essentials/project-000-820',
-    localImage: '/assets/n820.avif',
-    id: '001'
-  }
-];
+import { arrayCards } from '@/utils/data';
+import { baseUrl } from '@/utils/functions';
 ---
-
-<section class="am-container-cards">
-  {
-    arrayCards.map(({ id, localImage, repo, title }) => (
-      <aside class='card' />
-    ))
-  }
-</section>
 
 <style>
   .am-container-cards {
     min-height: 100vh;
     display: grid;
-    padding: 2.2vmax;
-    gap: 2.2vmax;
+    padding: 2vmax;
+    gap: 2vmax;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(17vmax, 1fr));
   }
+
+  @keyframes clippy {
+    0% {
+      clip-path: circle(0% at 50% 50%);
+    }
+    100% {
+      clip-path: circle(100% at 50% 50%);
+    }
+  }
+
+  .card {
+    min-width: 17vmax;
+    width: 100%;
+
+    &:hover canvas {
+      animation: clippy 5s ease-in-out both;
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
 </style>
+
+<section class='am-container-cards'>
+  {
+    arrayCards.map(({  localImage, title, web }) => (
+      <a class='card' title={title} href={web}>
+        <img class='card-image' src={baseUrl(localImage)} />
+      </a>
+    ))
+  }
+</section>
+
+<script>
+  import {
+    Scene,
+    OrthographicCamera,
+    WebGLRenderer,
+    PlaneGeometry,
+    ShaderMaterial,
+    Mesh,
+    TextureLoader,
+    Vector2
+  } from 'three';
+
+  const cards = document.querySelectorAll('.card');
+
+  const renderer = new WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.domElement.style.position = 'fixed';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.pointerEvents = 'none';
+  renderer.domElement.style.zIndex = '10';
+  renderer.domElement.style.opacity = '0';
+  document.body.appendChild(renderer.domElement);
+
+  const scene = new Scene();
+  const camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.z = 1;
+
+  const textureLoader = new TextureLoader();
+
+  /* ------------------ UNIFORMS ------------------ */
+
+  const uniforms = {
+    u_time: { value: 0 },
+    u_mouse: { value: new Vector2() },
+    u_intensity: { value: 0 },
+    u_texture: { value: null }
+  };
+
+  const material = new ShaderMaterial({
+    uniforms,
+    transparent: true,
+    vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = vec4(position, 1.0);
+    }
+  `,
+    fragmentShader: `
+    uniform float u_time;
+    uniform vec2 u_mouse;
+    uniform float u_intensity;
+    uniform sampler2D u_texture;
+    varying vec2 vUv;
+
+    void main() {
+      vec2 uv = vUv;
+
+      float wave = sin(uv.y * 10.0 + u_time + u_mouse.x * 5.0) * u_intensity;
+      uv.x += wave;
+
+      vec4 color = texture2D(u_texture, uv);
+      gl_FragColor = color;
+    }
+  `
+  });
+
+  const mesh = new Mesh(new PlaneGeometry(2, 2), material);
+  scene.add(mesh);
+
+  /* ------------------ PRELOAD TEXTURES ------------------ */
+
+  const textureMap = new Map();
+
+  cards.forEach(card => {
+    const img = card.querySelector('.card-image');
+    textureMap.set(img.src, textureLoader.load(img.src));
+  });
+
+  /* ------------------ STATE ------------------ */
+
+  let activeCard = null;
+  let activeImage = null;
+  let targetIntensity = 0;
+  let currentIntensity = 0;
+
+  /* ------------------ POSITION UPDATE ------------------ */
+
+  function updateCanvasPosition() {
+    if (!activeCard) return;
+
+    const rect = activeCard.getBoundingClientRect();
+
+    // Si sale del viewport, ocultamos
+    if (
+      rect.bottom < 0 ||
+      rect.top > window.innerHeight ||
+      rect.right < 0 ||
+      rect.left > window.innerWidth
+    ) {
+      renderer.domElement.style.opacity = '0';
+      return;
+    }
+
+    renderer.setSize(rect.width, rect.height);
+    renderer.domElement.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
+    renderer.domElement.style.opacity = '1';
+  }
+
+  window.addEventListener('scroll', updateCanvasPosition);
+  window.addEventListener('resize', updateCanvasPosition);
+
+  /* ------------------ EVENTS ------------------ */
+
+  cards.forEach(card => {
+    const img = card.querySelector('.card-image');
+
+    card.addEventListener('mouseenter', () => {
+      activeCard = card;
+      activeImage = img;
+
+      uniforms.u_texture.value = textureMap.get(img.src);
+      targetIntensity = 0.02;
+
+      img.style.visibility = 'hidden';
+
+      updateCanvasPosition();
+    });
+
+    card.addEventListener('mousemove', e => {
+      if (!activeCard) return;
+
+      const rect = card.getBoundingClientRect();
+
+      uniforms.u_mouse.value.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+
+      uniforms.u_mouse.value.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    });
+
+    card.addEventListener('mouseleave', () => {
+      targetIntensity = 0;
+
+      if (activeImage) {
+        activeImage.style.visibility = 'visible';
+      }
+
+      renderer.domElement.style.opacity = '0';
+
+      activeCard = null;
+      activeImage = null;
+    });
+  });
+
+  /* ------------------ ANIMATION LOOP ------------------ */
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    currentIntensity += (targetIntensity - currentIntensity) * 0.08;
+
+    uniforms.u_intensity.value = currentIntensity;
+    uniforms.u_time.value += 0.03;
+
+    if (currentIntensity > 0.0001) {
+      renderer.render(scene, camera);
+    }
+  }
+
+  animate();
+</script>
