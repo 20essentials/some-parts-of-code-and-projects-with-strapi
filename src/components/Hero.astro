@@ -1,11 +1,13 @@
 ---
 import { baseUrl } from '@/utils/functions';
-const logo = baseUrl('/assets/css-logo.svg');
+const logo = baseUrl('/assets/titulo.webp');
+const logoStapi = baseUrl('/assets/strapi-logo.svg');
 ---
 
-<section class="am-hero">
+<section class='am-hero'>
   <h1>
-    Some Parts Of Code And Projects With Strapi <img src={logo} alt='Logo' />
+    <img class="am-logo" src={logo} alt='Logo' />
+    <img class="am-logo strapi-logo" src={logoStapi} alt='Logo' />
   </h1>
 </section>
 <style>
@@ -19,16 +21,17 @@ const logo = baseUrl('/assets/css-logo.svg');
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 5vmax;
-    text-align: center;
-    text-wrap: balance;
-    color: transparent;
-    background-image: var(--gradient);
-    background-clip: text;
 
     img {
-      width: 4vmax;
-      transform: translateY(0.3vmax);
+      width: 60vmax;
+
+      &.strapi-logo {
+        width: 6vmax;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 0;
+      }
     }
   }
 </style>
