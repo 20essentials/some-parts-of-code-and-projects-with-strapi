@@ -11,6 +11,6 @@ export default defineConfig({
   site: 'http://localhost:4321/'
 
   //Deploy normal project
-  // base: '/project-1020/',
-  // site: 'https://20essentials.github.io/project-1020/',
+  // base: '/some-parts-of-code-and-projects-with-strapi/',
+  // site: 'https://20essentials.github.io/some-parts-of-code-and-projects-with-strapi/',
 });
