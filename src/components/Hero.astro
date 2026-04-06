@@ -6,8 +6,8 @@ const logoStapi = baseUrl('/assets/strapi-logo.svg');
 
 <section class='am-hero'>
   <h1>
-    <img class="am-logo" src={logo} alt='Logo' />
-    <img class="am-logo strapi-logo" src={logoStapi} alt='Logo' />
+    <img class='am-logo' src={logo} alt='Logo' />
+    <img class='am-logo strapi-logo' src={logoStapi} alt='Logo' />
   </h1>
 </section>
 <style>
@@ -25,12 +25,20 @@ const logoStapi = baseUrl('/assets/strapi-logo.svg');
     img {
       width: 60vmax;
 
+      @media (width <= 1111px) and (orientation: portrait) {
+        width: 60vmin;
+      }
+
       &.strapi-logo {
         width: 6vmax;
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
         bottom: 0;
+
+        @media (width <= 1111px) and (orientation: portrait) {
+          width: 6vmin;
+        }
       }
     }
   }

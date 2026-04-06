@@ -52,8 +52,10 @@ button {
 body {
   min-height: 100vh;
   height: max-content;
+  background-color: #000;
   width: 100%;
   flex-direction: column;
+  touch-action: pan-y;
 }
 
 /***************************SCROLL***************************/
